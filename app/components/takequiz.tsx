@@ -1,6 +1,7 @@
+// src/components/TakeQuizClient.tsx (only wrapper changes)
 "use client";
-
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useFormState } from "react-dom";
 import { submitAttemptAction } from "@/app/actions/attempts";
 
 export default function TakeQuizClient({
@@ -11,69 +12,76 @@ export default function TakeQuizClient({
   questions: any[];
 }) {
   const [answers, setAnswers] = useState<Record<string, number[]>>({});
-  const [result, setResult] = useState<any>(null);
-  const [busy, setBusy] = useState(false);
+  const [state, formAction] = useFormState(submitAttemptAction, { ok: false });
+  const answersJson = useMemo(
+    () =>
+      JSON.stringify(
+        Object.entries(answers).map(([qid, selected]) => ({ qid, selected }))
+      ),
+    [answers]
+  );
 
   function toggle(qid: string, idx: number) {
     setAnswers((prev) => {
-      const set = new Set(prev[qid] ?? []);
-      set.has(idx) ? set.delete(idx) : set.add(idx);
-      return { ...prev, [qid]: Array.from(set) };
+      const s = new Set(prev[qid] ?? []);
+      s.has(idx) ? s.delete(idx) : s.add(idx);
+      return { ...prev, [qid]: Array.from(s) };
     });
   }
 
-  async function submit() {
-    setBusy(true);
-    const payload = Object.entries(answers).map(([qid, selected]) => ({
-      qid,
-      selected,
-    }));
-    const formData = new FormData();
-    formData.append("quizId", quizId);
-    formData.append("answers", JSON.stringify(payload));
-    const res = await submitAttemptAction(null, formData);
-    setResult(res);
-    setBusy(false);
-  }
-
   return (
-    <div className="space-y-4">
-      {questions.map((q: any) => (
-        <div key={q.qid} className="border rounded p-4 space-y-2">
-          <div className="font-medium">{q.text}</div>
-          {q.options.map((opt: string, i: number) => {
-            const selected = (answers[q.qid] ?? []).includes(i);
-            return (
-              <label key={i} className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={selected}
-                  onChange={() => toggle(q.qid, i)}
-                />
-                <span>{opt}</span>
-              </label>
-            );
-          })}
-        </div>
-      ))}
+    <div className="card">
+      <div className="section">
+        <form action={formAction} className="stack">
+          <input type="hidden" name="quizId" value={quizId} />
+          <input type="hidden" name="answers" value={answersJson} />
 
-      <button
-        disabled={busy}
-        onClick={submit}
-        className="px-4 py-2 rounded bg-black text-white"
-      >
-        {busy ? "Submitting..." : "Submit"}
-      </button>
+          {questions.map((q: any) => (
+            <div
+              key={q.qid}
+              className="stack"
+              style={{
+                padding: "12px 0",
+                borderBottom: "1px solid var(--border)",
+              }}
+            >
+              <div style={{ fontWeight: 600 }}>{q.text}</div>
+              {q.options.map((opt: string, i: number) => {
+                const selected = (answers[q.qid] ?? []).includes(i);
+                return (
+                  <label
+                    key={i}
+                    className="row"
+                    style={{ gap: 8, cursor: "pointer" }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selected}
+                      onChange={() => toggle(q.qid, i)}
+                    />
+                    <span>{opt}</span>
+                  </label>
+                );
+              })}
+            </div>
+          ))}
 
-      {result?.ok && (
-        <div className="border rounded p-4">
-          <div className="font-semibold mb-2">Result</div>
-          <p>
-            Score: {result.score} / {result.total}
-          </p>
-        </div>
-      )}
-      {result?.error && <p className="text-red-600">{result.error}</p>}
+          <div className="row" style={{ gap: 10, marginTop: 8 }}>
+            <button className="btn">Submit</button>
+          </div>
+
+          {state?.ok && (
+            <div className="helper" style={{ marginTop: 8 }}>
+              Score: {state.score} / {state.total}
+            </div>
+          )}
+          {state?.error && (
+            <div className="helper" style={{ color: "#ff6b6b" }}>
+              {state.error}
+            </div>
+          )}
+        </form>
+      </div>
     </div>
   );
 }

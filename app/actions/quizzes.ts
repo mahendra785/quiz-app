@@ -1,91 +1,102 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { unstable_noStore as noStore, revalidatePath } from "next/cache";
 import { getDynamo } from "@/lib/dynamo";
 import { Quiz, QuizSchema, Question } from "@/lib/interfaces";
-import { ScanCommand, PutCommand, GetCommand } from "@aws-sdk/lib-dynamodb";
+import { GetCommand, PutCommand, UpdateCommand, BatchGetCommand, DeleteCommand } from "@aws-sdk/lib-dynamodb";
+import { assertRole } from "@/lib/rbac";
 
 const TABLE = process.env.DYNAMO_TABLE_NAME!;
 const PK = "cloud";
+const QUIZ_INDEX_PK = "QUIZ_INDEX";
+const quizPk = (id: string) => `QUIZ#${id}`;
 
-export async function listQuizzesAction(): Promise<Quiz[]> {
+export async function getQuizByIdAction(quizId: string): Promise<Quiz | null> {
+  noStore();
   const ddb = getDynamo();
-  const res = await ddb.send(new ScanCommand({
-    TableName: TABLE,
-    FilterExpression: "#k = :quiz",
-    ExpressionAttributeNames: { "#k": "kind" },
-    ExpressionAttributeValues: { ":quiz": "QUIZ" },
-  }));
-  const items = (res.Items ?? []) as Quiz[];
-  return items.map(i => QuizSchema.parse(i));
+  const res = await ddb.send(new GetCommand({ TableName: TABLE, Key: { [PK]: quizPk(quizId.trim()) } }));
+  if (!res.Item) return null;
+  return QuizSchema.parse(res.Item as Quiz);
 }
 
-// ✅ One-arg signature for <form action={createQuizAction}>
+export async function listQuizzesAction(): Promise<Quiz[]> {
+  noStore();
+  const ddb = getDynamo();
+  const man = await ddb.send(new GetCommand({ TableName: TABLE, Key: { [PK]: QUIZ_INDEX_PK } }));
+  const ids: string[] = (man.Item?.ids as string[]) ?? [];
+  if (ids.length === 0) return [];
+  const chunks = (arr: string[], n: number) => Array.from({ length: Math.ceil(arr.length/n) }, (_,i)=>arr.slice(i*n,(i+1)*n));
+  const all: Quiz[] = [];
+  for (const part of chunks(ids, 100)) {
+    const res = await ddb.send(new BatchGetCommand({
+      RequestItems: { [TABLE]: { Keys: part.map(id => ({ [PK]: quizPk(id) })) } }
+    }));
+    const items = (res.Responses?.[TABLE] ?? []) as Quiz[];
+    for (const it of items) all.push(QuizSchema.parse(it));
+  }
+  return all;
+}
+
+// ONLY admin/creator
 export async function createQuizAction(formData: FormData) {
+  await assertRole(["admin","creator"]);
   const quizId = String(formData.get("quizId") ?? "").trim();
   const title  = String(formData.get("title")  ?? "").trim();
   if (!quizId || !title) return { ok: false, error: "quizId & title required" };
 
   const quiz: Quiz = {
-    cloud: `QUIZ#${quizId}`,  // DynamoDB PK
+    cloud: quizPk(quizId),
     kind: "QUIZ",
-    quizId,
-    title,
+    quizId, title,
     questions: [] as Question[],
-    published: true,
+    published: false,
     createdAt: Date.now(),
   };
   QuizSchema.parse(quiz);
 
   const ddb = getDynamo();
-  await ddb.send(new PutCommand({ TableName: TABLE, Item: quiz }));
-
-  revalidatePath("/");
+  await ddb.send(new PutCommand({
+    TableName: TABLE, Item: quiz,
+    ConditionExpression: "attribute_not_exists(#pk)",
+    ExpressionAttributeNames: { "#pk": PK },
+  }));
+  await ddb.send(new UpdateCommand({
+    TableName: TABLE, Key: { [PK]: QUIZ_INDEX_PK },
+    UpdateExpression: "SET #ids = list_append(if_not_exists(#ids, :empty), :new)",
+    ExpressionAttributeNames: { "#ids": "ids" },
+    ExpressionAttributeValues: { ":new": [quizId], ":empty": [] },
+  }));
+  revalidatePath("/"); revalidatePath("/creator"); revalidatePath("/admin");
   return { ok: true };
 }
 
-export async function seedQuizAction() {
-  const quiz: Quiz = {
-    cloud: "QUIZ#q_aws_1",
-    kind: "QUIZ",
-    quizId: "q_aws_1",
-    title: "AWS Basics (Demo)",
-    questions: [
-      { qid: "q1", type: "single", text: "Which AWS service is NoSQL?", options: ["RDS","DynamoDB","Aurora","Redshift"], answer: [1] },
-      { qid: "q2", type: "single", text: "Which region code is Europe (Stockholm)?", options: ["eu-west-1","eu-central-1","eu-north-1","eu-south-1"], answer: [2] },
-    ],
-    published: true,
-    createdAt: Date.now(),
-  };
-  QuizSchema.parse(quiz);
-
+// ONLY admin/creator
+export async function updateQuizContentAction(quizId: string, patch: Partial<Pick<Quiz,"title"|"questions"|"published">>) {
+  await assertRole(["admin","creator"]);
+  const sets: string[] = []; const names: Record<string,string> = {}; const values: Record<string,any> = {};
+  if (patch.title !== undefined) { sets.push("#t=:t"); names["#t"]="title"; values[":t"]=patch.title; }
+  if (patch.questions !== undefined) { sets.push("#q=:q"); names["#q"]="questions"; values[":q"]=patch.questions; }
+  if (patch.published !== undefined) { sets.push("#p=:p"); names["#p"]="published"; values[":p"]=patch.published; }
+  if (sets.length === 0) return { ok: true };
   const ddb = getDynamo();
-  await ddb.send(new PutCommand({ TableName: TABLE, Item: quiz }));
-
-  revalidatePath("/");
+  await ddb.send(new UpdateCommand({
+    TableName: TABLE, Key: { [PK]: quizPk(quizId) },
+    UpdateExpression: `SET ${sets.join(", ")}`,
+    ExpressionAttributeNames: names, ExpressionAttributeValues: values,
+  }));
+  revalidatePath("/creator"); revalidatePath(`/quiz/${quizId}`);
   return { ok: true };
 }
-// app/actions/quizzes.ts
-// src/app/actions/quizzes.ts (replace the function)
-export async function getQuizByIdAction(quizId: string): Promise<Quiz | null> {
+
+// ONLY admin
+export async function deleteQuizAction(quizId: string) {
+  await assertRole(["admin"]);
   const ddb = getDynamo();
-  const qid = String(quizId ?? "").trim();
-
-  const res = await ddb.send(
-    new GetCommand({
-      TableName: TABLE,
-      Key: {
-        cloud: `QUIZ#${quizId}`,
-      }
-    })
-  );
-
-//   const raw = res.Items?.[0;
-//   if (!raw) return null;
-
-//   const parsed = QuizSchema.safeParse(raw);
-//   return parsed.success ? rs : (raw as any);
-    if (!res.Item) return null;
-    return QuizSchema.parse(res.Item);
+  await ddb.send(new DeleteCommand({ TableName: TABLE, Key: { [PK]: quizPk(quizId) } }));
+  const man = await ddb.send(new GetCommand({ TableName: TABLE, Key: { [PK]: QUIZ_INDEX_PK } }));
+  const ids: string[] = (man.Item?.ids as string[]) ?? [];
+  const next = ids.filter(id => id !== quizId);
+  await ddb.send(new PutCommand({ TableName: TABLE, Item: { [PK]: QUIZ_INDEX_PK, ids: next } }));
+  revalidatePath("/admin"); revalidatePath("/");
+  return { ok: true };
 }
-

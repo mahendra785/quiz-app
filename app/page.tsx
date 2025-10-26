@@ -1,73 +1,86 @@
-import {
-  listQuizzesAction,
-  createQuizAction,
-  seedQuizAction,
-} from "@/app/actions/quizzes";
+import Link from "next/link";
+import { listQuizzesAction, createQuizAction } from "@/app/actions/quizzes";
+import { getServerSession } from "next-auth";
+import { authOptions } from "../lib/auth"; // 👈 NOTE: authOptions, not auth
 
 export default async function Home() {
+  const session = await getServerSession(authOptions); // ✅ v4 way
+  const role = session?.user?.role;
   const quizzes = await listQuizzesAction();
-  console.log("Home: quizzes=", quizzes);
+
   return (
-    <main className="max-w-3xl mx-auto p-6 space-y-6">
-      <h1 className="text-2xl font-bold">Quizzes</h1>
-      <form action={seedQuizAction}>
-        <button className="px-3 py-2 rounded bg-black text-white">
-          Seed demo quiz
-        </button>
-      </form>
-      <form
-        action={createQuizAction}
-        className="flex gap-2 items-end"
-        method="post"
+    <main className="container">
+      <div
+        className="row"
+        style={{
+          justifyContent: "space-between",
+          alignItems: "end",
+          marginBottom: 16,
+        }}
       >
         <div>
-          <label className="block text-sm" htmlFor="quizId">
-            Quiz ID
-          </label>
-          <input id="quizId" name="quizId" className="border p-2 rounded" />
+          <h1 className="h1">Quizzes</h1>
+          <div className="text-muted">Sharpen skills. Instant feedback.</div>
         </div>
-        <div>
-          <label className="block text-sm" htmlFor="title">
-            Title
-          </label>
-          <input id="title" name="title" className="border p-2 rounded" />
+        {(role === "admin" || role === "creator") && (
+          <form action={createQuizAction} className="row" style={{ gap: 8 }}>
+            <div className="stack">
+              <label className="label">Quiz ID</label>
+              <input
+                name="quizId"
+                className="input"
+                placeholder="e.g. aws_basics"
+              />
+            </div>
+            <div className="stack">
+              <label className="label">Title</label>
+              <input name="title" className="input" placeholder="AWS Basics" />
+            </div>
+            <button className="btn" style={{ height: 42 }}>
+              Create
+            </button>
+          </form>
+        )}
+      </div>
+
+      <div className="grid grid-2">
+        {quizzes.map((q) => (
+          <div key={q.cloud} className="card">
+            <div className="section">
+              <div className="row" style={{ justifyContent: "space-between" }}>
+                <div>
+                  <div className="h2">{q.title}</div>
+                  <div className="helper">
+                    ID: <span className="mono">{q.quizId}</span>
+                  </div>
+                </div>
+                <span className="badge">
+                  {q.published ? "Published" : "Draft"}
+                </span>
+              </div>
+              <div className="row" style={{ marginTop: 12 }}>
+                <Link
+                  className="btn-outline"
+                  href={`/quiz/${encodeURIComponent(q.quizId)}`}
+                >
+                  Open
+                </Link>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {!session?.user && (
+        <div className="card" style={{ marginTop: 24 }}>
+          <div className="section">
+            <div className="h2">Sign in to create or attempt quizzes</div>
+            <div className="helper">
+              Use the button in the top-right to sign in with Google.
+            </div>
+          </div>
         </div>
-        <button className="px-3 py-2 rounded bg-black text-white">
-          Create
-        </button>
-      </form>
-      <ul className="space-y-3">
-        {quizzes.map((q) => (
-          <li key={q.cloud} className="border p-4 rounded">
-            <div className="font-semibold">{q.title}</div>
-            <a className="text-blue-600 underline" href={`/quiz/${q.quizId}`}>
-              Start
-            </a>
-          </li>
-        ))}
-      </ul>
-      // app/(www)/page.tsx
-      <ul className="space-y-3">
-        {quizzes.map((q) => (
-          <li key={q.cloud} className="border p-4 rounded">
-            <div className="font-semibold">{q.title}</div>
-            <div className="text-xs text-gray-500">
-              quizId: <code>{q.quizId}</code> • cloud: <code>{q.cloud}</code>
-            </div>
-            <div className="flex gap-3 mt-2">
-              <a className="text-blue-600 underline" href={`/quiz/${q.quizId}`}>
-                Open by quizId
-              </a>
-              <a
-                className="text-blue-600 underline"
-                href={`/quiz/${encodeURIComponent(q.cloud)}`}
-              >
-                Open by cloud
-              </a>
-            </div>
-          </li>
-        ))}
-      </ul>
+      )}
     </main>
   );
 }

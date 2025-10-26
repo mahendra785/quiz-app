@@ -11,7 +11,7 @@ export const QuestionSchema = z.object({
 export type Question = z.infer<typeof QuestionSchema>;
 
 export const QuizSchema = z.object({
-  cloud: z.string(),                 // DynamoDB PK: "QUIZ#<quizId>"
+  cloud: z.string(),            // "QUIZ#<quizId>"
   kind: z.literal("QUIZ"),
   quizId: z.string(),
   title: z.string(),
@@ -22,7 +22,7 @@ export const QuizSchema = z.object({
 export type Quiz = z.infer<typeof QuizSchema>;
 
 export const AttemptSchema = z.object({
-  cloud: z.string(),                 // "ATTEMPT#<attemptId>"
+  cloud: z.string(),            // "ATTEMPT#<attemptId>"
   kind: z.literal("ATTEMPT"),
   attemptId: z.string(),
   quizId: z.string(),
@@ -32,3 +32,15 @@ export const AttemptSchema = z.object({
   createdAt: z.number(),
 });
 export type Attempt = z.infer<typeof AttemptSchema>;
+
+export const UserSchema = z.object({
+  cloud: z.string(),                     // "USER#<email>"
+  kind: z.literal("USER"),
+  email: z.string().email(),
+  role: z.enum(["admin", "creator", "learner"]),
+  name: z.string().nullable().optional(),
+  image: z.string().url().nullable().optional(),
+  createdAt: z.number(),
+  lastLoginAt: z.number().optional(),
+});
+export type User = z.infer<typeof UserSchema>;
