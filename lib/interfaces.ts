@@ -44,3 +44,25 @@ export const UserSchema = z.object({
   lastLoginAt: z.number().optional(),
 });
 export type User = z.infer<typeof UserSchema>;
+// Used only in the UI. Easier to modify answers.
+export type UIAnswer = {
+  aid: string;
+  text: string;
+  correct: boolean;
+};
+
+export type UIQuestion = {
+  qid: string;
+  text: string;
+  type: "single" | "multi";
+  answers: UIAnswer[];
+  explanation?: string;
+};
+
+export type UIQuiz = {
+  quizId: string;
+  title: string;
+  questions: UIQuestion[];
+  published?: boolean;
+  description?: string; // Optional UI only; not in Zod schema (can ignore or add later)
+};

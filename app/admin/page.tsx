@@ -1,29 +1,36 @@
-import { auth } from "../../lib/auth";
 import { redirect } from "next/navigation";
 import { listQuizzesAction, deleteQuizAction } from "@/app/actions/quizzes";
-import { setUserRoleAction } from "@/app/actions/users";
+import { getUserByEmailAction, setUserRoleAction } from "@/app/actions/users";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export default async function AdminPage() {
-  const session = await auth();
-  if (session?.user?.role !== "admin") redirect("/");
+  // ✅ Server-safe session retrieval
+  const session = await getServerSession(authOptions);
+  const email = session?.user?.email;
+
+  const user = email ? await getUserByEmailAction(email) : null;
+  const role = user?.role;
+
+  if (role !== "admin") {
+    redirect("/");
+  }
 
   const quizzes = await listQuizzesAction();
 
-  async function setRole(prev: any, fd: FormData) {
+  async function setRole(fd: FormData) {
     "use server";
     const email = String(fd.get("email") ?? "")
       .trim()
       .toLowerCase();
     const role = String(fd.get("role") ?? "learner") as any;
     await setUserRoleAction(email, role);
-    return { ok: true };
   }
 
-  async function del(prev: any, fd: FormData) {
+  async function del(fd: FormData) {
     "use server";
     const quizId = String(fd.get("quizId") ?? "").trim();
     await deleteQuizAction(quizId);
-    return { ok: true };
   }
 
   return (

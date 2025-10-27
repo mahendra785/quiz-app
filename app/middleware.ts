@@ -1,17 +1,24 @@
-import { auth } from "../lib/auth";
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { getToken } from "next-auth/jwt";
+import { getUserByEmailAction } from "@/app/actions/users";
+export async function middleware(req: NextRequest) {
+  const token = await getToken({ req });
+  const user = token?.email;
+  console.log("Current user email:", user);
+  const userobj = await getUserByEmailAction(user || "");
+  console.log("User role:", userobj?.role);
 
-export default auth(async (req) => {
-  const { pathname } = req.nextUrl;
-  const role = (req as any).auth?.user?.role as "admin" | "creator" | "learner" | undefined;
+  // Protect /creator route
+  if (req.nextUrl.pathname.startsWith("/creator")) {
+    if (!(userobj?.role === "admin" || userobj?.role === "creator")) {
+      return NextResponse.redirect(new URL("/", req.url));
+    }
+  }
 
-  if (pathname.startsWith("/admin") && role !== "admin") {
-    return NextResponse.redirect(new URL("/", req.url));
-  }
-  if (pathname.startsWith("/creator") && !(role === "admin" || role === "creator")) {
-    return NextResponse.redirect(new URL("/", req.url));
-  }
   return NextResponse.next();
-});
+}
 
-export const config = { matcher: ["/admin/:path*", "/creator/:path*"] };
+export const config = {
+  matcher: ["/creator/:path*"],
+};

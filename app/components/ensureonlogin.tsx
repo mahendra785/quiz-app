@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
+import { ensureUserAction } from "@/app/actions/ensure-users"; // adjust the path as needed
 
 export default function EnsureUserOnLogin() {
   const { data } = useSession();
@@ -9,15 +10,12 @@ export default function EnsureUserOnLogin() {
   useEffect(() => {
     if (!data?.user?.email || did.current) return;
     did.current = true;
-    (async () => {
-      try {
-        const fd = new FormData();
-        fd.set("email", data.user.email || "");
-        fd.set("name", data.user.name || "");
-        fd.set("image", data.user.image || "");
-        await fetch("/actions/ensure-users", { method: "POST", body: fd });
-      } catch {}
-    })();
+
+    ensureUserAction({
+      email: data.user.email,
+      name: data.user.name || "",
+      image: data.user.image || "",
+    }).catch(() => {});
   }, [data?.user?.email]);
 
   return null;

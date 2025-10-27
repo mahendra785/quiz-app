@@ -1,7 +1,7 @@
 // lib/auth.ts
 import type { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
-
+import { ensureUserAction } from "../app/actions/ensure-users";
 function envRole(email?: string | null): "admin" | "creator" | "learner" {
   try {
     const admins = JSON.parse(process.env.ADMIN_EMAILS || "[]") as string[];
@@ -30,5 +30,13 @@ export const authOptions: NextAuthOptions = {
       (session.user as any).role = (token as any).role;
       return session;
     },
+      async signIn({ user }) {
+    await ensureUserAction({
+      email: user.email!,
+      name: user.name || "",
+      image: user.image || "",
+    });
+    return true;
+  }
   },
 };
