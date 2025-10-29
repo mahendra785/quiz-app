@@ -1,7 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Trash2, Plus, Check, GripVertical, Save, Loader2 } from "lucide-react";
+import {
+  Trash2,
+  Plus,
+  Check,
+  GripVertical,
+  Save,
+  Loader2,
+  Sparkles,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   createQuizAction,
@@ -180,7 +188,7 @@ export default function QuizCreatorClient({
       if (res.ok && res.quizId) {
         setShowNewQuizModal(false);
         setNewQuizTitle("");
-        setSelectedQuizId(res.quizId); // Auto-select new quiz
+        setSelectedQuizId(res.quizId);
         router.refresh();
         setSaveMessage("Quiz created!");
       }
@@ -210,7 +218,12 @@ export default function QuizCreatorClient({
 
   const handleDeleteQuiz = async () => {
     if (!activeQuiz) return;
-    if (!confirm("Are you sure?")) return;
+    if (
+      !confirm(
+        "Are you sure you want to delete this quiz? This action cannot be undone."
+      )
+    )
+      return;
     setIsDeleting(true);
     try {
       await deleteQuizAction(activeQuiz.quizId);
@@ -227,74 +240,95 @@ export default function QuizCreatorClient({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Quiz Creator
-          </h1>
-          <p className="text-gray-600">Create and manage your quizzes</p>
-        </div>
-
-        {/* Save Message Toast */}
-        {saveMessage && (
-          <div className="fixed top-20 right-6 z-50 animate-in slide-in-from-top">
-            <div
-              className={`px-6 py-3 rounded-lg shadow-lg ${
-                saveMessage.includes("Error")
-                  ? "bg-red-600 text-white"
-                  : "bg-emerald-600 text-white"
-              }`}
-            >
-              {saveMessage}
+    <div className="min-h-screen bg-white/10">
+      {/* Header */}
+      <div className=" border-b border-gray-200 sticky top-0 z-40 shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center">
+              <Sparkles className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Quiz Creator</h1>
+              <p className="text-sm text-gray-500">
+                Create and manage your quizzes
+              </p>
             </div>
           </div>
-        )}
+        </div>
+      </div>
 
+      {/* Save Message Toast */}
+      {saveMessage && (
+        <div className="fixed top-20 right-6 z-50 animate-in slide-in-from-top duration-200">
+          <div
+            className={`px-6 py-3 rounded-xl shadow-lg flex items-center gap-2 ${
+              saveMessage.includes("Error")
+                ? "bg-red-600 text-white"
+                : "bg-emerald-600 text-white"
+            }`}
+          >
+            {saveMessage.includes("Error") ? "❌" : "✓"} {saveMessage}
+          </div>
+        </div>
+      )}
+
+      <div className="max-w-7xl mx-auto px-6 py-8 bg-white/10">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Sidebar */}
           <div className="lg:col-span-1">
-            <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm sticky top-24">
+            <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm sticky top-24">
               <button
                 onClick={() => setShowNewQuizModal(true)}
-                className="w-full px-4 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors mb-4 flex items-center justify-center gap-2"
+                className="w-full px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition-all mb-6 flex items-center justify-center gap-2"
               >
                 <Plus className="w-5 h-5" />
                 New Quiz
               </button>
 
               <div className="space-y-2">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-2 mb-2">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
                   Your Quizzes ({quizzes.length})
                 </p>
                 {quizzes.length === 0 ? (
-                  <p className="text-sm text-gray-500 px-2 py-4 text-center">
-                    No quizzes yet
-                  </p>
+                  <div className="text-center py-8 px-4 bg-gray-50 rounded-xl border border-gray-200">
+                    <div className="text-3xl mb-2">📝</div>
+                    <p className="text-sm text-gray-500">No quizzes yet</p>
+                  </div>
                 ) : (
-                  quizzes.map((quiz) => (
-                    <button
-                      key={quiz.quizId}
-                      onClick={() => setSelectedQuizId(quiz.quizId)}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                        selectedQuizId === quiz.quizId
-                          ? "bg-indigo-50 text-indigo-700 font-medium"
-                          : "text-gray-700 hover:bg-gray-50"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="truncate">{quiz.title}</span>
-                        {quiz.published ? (
-                          <span className="w-2 h-2 bg-emerald-500 rounded-full ml-2 flex-shrink-0" />
-                        ) : (
-                          <span className="w-2 h-2 bg-gray-400 rounded-full ml-2 flex-shrink-0" />
-                        )}
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {quiz.questions?.length || 0} questions
-                      </div>
-                    </button>
-                  ))
+                  <div className="space-y-2 max-h-[calc(100vh-300px)] overflow-y-auto pr-2">
+                    {quizzes.map((quiz) => (
+                      <button
+                        key={quiz.quizId}
+                        onClick={() => setSelectedQuizId(quiz.quizId)}
+                        className={`w-full text-left px-4 py-3 rounded-xl transition-all ${
+                          selectedQuizId === quiz.quizId
+                            ? "bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-500 shadow-sm"
+                            : "bg-gray-50 border border-gray-200 hover:bg-gray-100"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span
+                            className={`font-medium truncate ${
+                              selectedQuizId === quiz.quizId
+                                ? "text-indigo-900"
+                                : "text-gray-900"
+                            }`}
+                          >
+                            {quiz.title}
+                          </span>
+                          {quiz.published ? (
+                            <span className="w-2 h-2 bg-emerald-500 rounded-full flex-shrink-0 ml-2" />
+                          ) : (
+                            <span className="w-2 h-2 bg-gray-400 rounded-full flex-shrink-0 ml-2" />
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {quiz.questions?.length || 0} questions
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
@@ -302,7 +336,7 @@ export default function QuizCreatorClient({
 
           {/* Main Content */}
           <div className="lg:col-span-3">
-            <div className="bg-white border border-gray-200 rounded-xl p-8 shadow-sm">
+            <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
               {activeQuiz ? (
                 <div className="space-y-8">
                   {/* Quiz Header */}
@@ -317,18 +351,19 @@ export default function QuizCreatorClient({
                             title: e.target.value,
                           })
                         }
-                        className="text-2xl font-bold text-gray-900 mb-2 w-full border-none focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded px-2 py-1"
+                        className="text-3xl font-bold text-gray-900 w-full border-none focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-lg px-3 py-2 hover:bg-gray-50 transition-colors"
                         placeholder="Quiz Title"
+                        style={{ color: "#111827" }}
                       />
                     </div>
                     <span
-                      className={`px-3 py-1 text-sm font-medium rounded-full flex-shrink-0 ml-4 ${
+                      className={`px-4 py-2 text-sm font-medium rounded-full flex-shrink-0 ml-4 ${
                         activeQuiz.published
                           ? "bg-emerald-100 text-emerald-700"
                           : "bg-gray-100 text-gray-600"
                       }`}
                     >
-                      {activeQuiz.published ? "Published" : "Draft"}
+                      {activeQuiz.published ? "✓ Published" : "○ Draft"}
                     </span>
                   </div>
 
@@ -336,11 +371,11 @@ export default function QuizCreatorClient({
                   <div>
                     <div className="flex items-center justify-between mb-6">
                       <h3 className="text-xl font-semibold text-gray-900">
-                        Questions
+                        Questions ({activeQuiz.questions?.length || 0})
                       </h3>
                       <button
                         onClick={handleAddQuestion}
-                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors flex items-center gap-2"
+                        className="px-5 py-2.5 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors flex items-center gap-2 shadow-sm hover:shadow"
                       >
                         <Plus className="w-4 h-4" />
                         Add Question
@@ -352,13 +387,13 @@ export default function QuizCreatorClient({
                         {activeQuiz.questions.map((q, index) => (
                           <div
                             key={q.qid}
-                            className="border border-gray-200 rounded-xl p-6 bg-white hover:shadow-md transition-shadow"
+                            className="border-2 border-gray-200 rounded-2xl p-6 bg-gradient-to-br from-white to-gray-50 hover:shadow-md transition-all"
                           >
                             {/* Question Header */}
-                            <div className="flex items-start gap-3 mb-4">
+                            <div className="flex items-start gap-3 mb-5">
                               <div className="flex items-center gap-2 flex-shrink-0">
                                 <GripVertical className="w-5 h-5 text-gray-400 cursor-move" />
-                                <span className="text-sm font-semibold text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                <span className="text-sm font-bold text-white bg-gradient-to-br from-indigo-600 to-purple-600 px-3 py-1.5 rounded-lg">
                                   Q{index + 1}
                                 </span>
                               </div>
@@ -374,13 +409,18 @@ export default function QuizCreatorClient({
                                     )
                                   }
                                   onBlur={() => setEditingQuestionId(null)}
-                                  className="flex-1 text-lg font-medium text-gray-900 border border-indigo-500 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter")
+                                      setEditingQuestionId(null);
+                                  }}
+                                  className="flex-1 text-lg font-semibold text-gray-900 border-2 border-indigo-500 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                                  style={{ color: "#111827" }}
                                   autoFocus
                                 />
                               ) : (
                                 <p
                                   onClick={() => setEditingQuestionId(q.qid)}
-                                  className="flex-1 text-lg font-medium text-gray-900 cursor-pointer hover:text-indigo-600 px-3 py-2 rounded-lg hover:bg-gray-50"
+                                  className="flex-1 text-lg font-semibold text-gray-900 cursor-pointer hover:text-indigo-600 px-4 py-2 rounded-lg hover:bg-white transition-colors"
                                 >
                                   {q.text}
                                 </p>
@@ -389,6 +429,7 @@ export default function QuizCreatorClient({
                               <button
                                 onClick={() => handleDeleteQuestion(q.qid)}
                                 className="text-gray-400 hover:text-red-600 transition-colors p-2 hover:bg-red-50 rounded-lg flex-shrink-0"
+                                title="Delete question"
                               >
                                 <Trash2 className="w-5 h-5" />
                               </button>
@@ -400,10 +441,10 @@ export default function QuizCreatorClient({
                                 q.answers.map((answer) => (
                                   <div
                                     key={answer.aid}
-                                    className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${
+                                    className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${
                                       answer.correct
-                                        ? "bg-emerald-50 border-emerald-200"
-                                        : "bg-gray-50 border-gray-200"
+                                        ? "bg-emerald-50 border-emerald-300 shadow-sm"
+                                        : "bg-white border-gray-200 hover:border-gray-300"
                                     }`}
                                   >
                                     <button
@@ -415,9 +456,10 @@ export default function QuizCreatorClient({
                                       }
                                       className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
                                         answer.correct
-                                          ? "bg-emerald-500 border-emerald-500"
-                                          : "border-gray-300 hover:border-emerald-400"
+                                          ? "bg-emerald-500 border-emerald-500 shadow-sm"
+                                          : "border-gray-300 hover:border-emerald-400 hover:bg-emerald-50"
                                       }`}
+                                      title="Toggle correct answer"
                                     >
                                       {answer.correct && (
                                         <Check className="w-4 h-4 text-white" />
@@ -436,7 +478,12 @@ export default function QuizCreatorClient({
                                           )
                                         }
                                         onBlur={() => setEditingAnswerId(null)}
-                                        className="flex-1 border border-indigo-500 rounded px-3 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter")
+                                            setEditingAnswerId(null);
+                                        }}
+                                        className="flex-1 border-2 border-indigo-500 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900"
+                                        style={{ color: "#111827" }}
                                         autoFocus
                                       />
                                     ) : (
@@ -444,10 +491,10 @@ export default function QuizCreatorClient({
                                         onClick={() =>
                                           setEditingAnswerId(answer.aid)
                                         }
-                                        className={`flex-1 cursor-pointer px-3 py-1 rounded hover:bg-white ${
+                                        className={`flex-1 cursor-pointer px-4 py-2 rounded-lg transition-colors ${
                                           answer.correct
-                                            ? "text-emerald-900 font-medium"
-                                            : "text-gray-700"
+                                            ? "text-emerald-900 font-medium bg-emerald-100"
+                                            : "text-gray-700 hover:bg-gray-50"
                                         }`}
                                       >
                                         {answer.text}
@@ -458,21 +505,22 @@ export default function QuizCreatorClient({
                                       onClick={() =>
                                         handleDeleteAnswer(q.qid, answer.aid)
                                       }
-                                      className="text-gray-400 hover:text-red-600 transition-colors p-1 hover:bg-red-50 rounded flex-shrink-0"
+                                      className="text-gray-400 hover:text-red-600 transition-colors p-2 hover:bg-red-50 rounded-lg flex-shrink-0"
+                                      title="Delete answer"
                                     >
                                       <Trash2 className="w-4 h-4" />
                                     </button>
                                   </div>
                                 ))
                               ) : (
-                                <p className="text-sm text-gray-500 italic">
-                                  No answers yet
+                                <p className="text-sm text-gray-500 italic py-4 text-center bg-gray-50 rounded-lg border border-gray-200">
+                                  No answers yet. Click "Add Answer" below.
                                 </p>
                               )}
 
                               <button
                                 onClick={() => handleAddAnswer(q.qid)}
-                                className="w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all flex items-center justify-center gap-2 text-sm font-medium"
+                                className="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-600 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all flex items-center justify-center gap-2 text-sm font-medium"
                               >
                                 <Plus className="w-4 h-4" />
                                 Add Answer
@@ -482,17 +530,17 @@ export default function QuizCreatorClient({
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center py-16 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50">
-                        <div className="text-5xl mb-4">📝</div>
-                        <h4 className="text-lg font-semibold text-gray-700 mb-2">
+                      <div className="text-center py-20 border-2 border-dashed border-gray-300 rounded-2xl bg-gradient-to-br from-gray-50 to-indigo-50/30">
+                        <div className="text-6xl mb-4">📝</div>
+                        <h4 className="text-xl font-bold text-gray-900 mb-2">
                           No questions yet
                         </h4>
-                        <p className="text-gray-500 mb-6">
+                        <p className="text-gray-600 mb-6">
                           Get started by adding your first question
                         </p>
                         <button
                           onClick={handleAddQuestion}
-                          className="px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors inline-flex items-center gap-2"
+                          className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition-all inline-flex items-center gap-2"
                         >
                           <Plus className="w-5 h-5" />
                           Add First Question
@@ -502,11 +550,11 @@ export default function QuizCreatorClient({
                   </div>
 
                   {/* Actions */}
-                  <div className="flex gap-3 pt-6 border-t border-gray-200">
+                  <div className="flex flex-wrap gap-3 pt-6 border-t border-gray-200">
                     <button
                       onClick={handleSaveChanges}
                       disabled={isSaving}
-                      className="px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-sm hover:shadow-md disabled:bg-indigo-400 disabled:cursor-not-allowed flex items-center gap-2"
+                      className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
                       {isSaving ? (
                         <>
@@ -523,15 +571,15 @@ export default function QuizCreatorClient({
                     <button
                       onClick={handlePublishQuiz}
                       disabled={isSaving}
-                      className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      className="px-8 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {activeQuiz.published ? "Unpublish Quiz" : "Publish Quiz"}
+                      {activeQuiz.published ? "○ Unpublish" : "✓ Publish Quiz"}
                     </button>
                     <div className="flex-1" />
                     <button
                       onClick={handleDeleteQuiz}
                       disabled={isDeleting}
-                      className="px-6 py-3 border border-red-300 text-red-600 rounded-lg font-medium hover:bg-red-50 transition-colors disabled:bg-red-100 disabled:cursor-not-allowed flex items-center gap-2"
+                      className="px-6 py-3 border-2 border-red-300 text-red-600 rounded-xl font-medium hover:bg-red-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
                       {isDeleting ? (
                         <>
@@ -548,17 +596,17 @@ export default function QuizCreatorClient({
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-20">
-                  <div className="text-6xl mb-4">✏️</div>
-                  <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                <div className="text-center py-24">
+                  <div className="text-7xl mb-6">✏️</div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-3">
                     No Quiz Selected
                   </h3>
-                  <p className="text-gray-500 mb-6">
+                  <p className="text-gray-600 mb-8 text-lg">
                     Select a quiz from the sidebar or create a new one
                   </p>
                   <button
                     onClick={() => setShowNewQuizModal(true)}
-                    className="px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors inline-flex items-center gap-2"
+                    className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition-all inline-flex items-center gap-2"
                   >
                     <Plus className="w-5 h-5" />
                     Create New Quiz
@@ -572,33 +620,40 @@ export default function QuizCreatorClient({
 
       {/* New Quiz Modal */}
       {showNewQuizModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6">
-          <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-6 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in duration-200">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
               Create New Quiz
             </h2>
+            <p className="text-gray-600 mb-6">
+              Enter a title for your new quiz
+            </p>
 
-            <div className="space-y-4 mb-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Quiz Title
-                </label>
-                <input
-                  type="text"
-                  value={newQuizTitle}
-                  onChange={(e) => setNewQuizTitle(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                  placeholder="Enter quiz title..."
-                  autoFocus
-                />
-              </div>
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Quiz Title
+              </label>
+              <input
+                type="text"
+                value={newQuizTitle}
+                onChange={(e) => setNewQuizTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newQuizTitle.trim() && !isCreating) {
+                    handleCreateNewQuiz();
+                  }
+                }}
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-gray-900 placeholder:text-gray-400"
+                style={{ color: "#111827" }}
+                placeholder="e.g., JavaScript Fundamentals"
+                autoFocus
+              />
             </div>
 
             <div className="flex gap-3">
               <button
                 onClick={handleCreateNewQuiz}
                 disabled={!newQuizTitle.trim() || isCreating}
-                className="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isCreating ? (
                   <>
@@ -606,7 +661,10 @@ export default function QuizCreatorClient({
                     Creating...
                   </>
                 ) : (
-                  "Create Quiz"
+                  <>
+                    <Plus className="w-5 h-5" />
+                    Create Quiz
+                  </>
                 )}
               </button>
               <button
@@ -615,7 +673,7 @@ export default function QuizCreatorClient({
                   setNewQuizTitle("");
                 }}
                 disabled={isCreating}
-                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
+                className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>

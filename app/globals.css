@@ -225,3 +225,67 @@ a:hover {
   font-size: 12px;
   color: var(--muted);
 }
+/* Add this to your globals.css file */
+
+/* Fix input text colors globally */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="search"],
+input[type="tel"],
+input[type="url"],
+textarea,
+select {
+  @apply text-gray-900;
+  color: #111827 !important;
+}
+
+/* Fix placeholder colors */
+input::placeholder,
+textarea::placeholder {
+  @apply text-gray-400;
+  color: #9ca3af !important;
+  opacity: 1;
+}
+
+/* Fix disabled state */
+input:disabled,
+textarea:disabled,
+select:disabled {
+  @apply text-gray-500 bg-gray-100;
+  color: #6b7280 !important;
+}
+
+/* Fix autofill background */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: #111827 !important;
+  -webkit-box-shadow: 0 0 0 30px white inset !important;
+  box-shadow: 0 0 0 30px white inset !important;
+}
+
+/* Dark mode autofill fix (if using dark mode) */
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover,
+.dark input:-webkit-autofill:focus,
+.dark input:-webkit-autofill:active {
+  -webkit-text-fill-color: #f9fafb !important;
+  -webkit-box-shadow: 0 0 0 30px #1f2937 inset !important;
+  box-shadow: 0 0 0 30px #1f2937 inset !important;
+}
+
+/* Ensure focus states are visible */
+input:focus,
+textarea:focus,
+select:focus {
+  @apply outline-none ring-2 ring-indigo-500 ring-offset-2;
+}
+
+/* Fix for React Hook Form or controlled inputs */
+input[value],
+textarea[value] {
+  color: #111827 !important;
+}

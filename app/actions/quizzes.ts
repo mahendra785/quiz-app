@@ -62,14 +62,12 @@ export async function listQuizzesAction(): Promise<Quiz[]> {
   const res = await ddb.send(
     new ScanCommand({
       TableName: TABLE,
-      FilterExpression: "#kind = :kind AND #creator = :creator",
+      FilterExpression: "#kind = :kind",
       ExpressionAttributeNames: {
         "#kind": "kind",
-        "#creator": "creator",
       },
       ExpressionAttributeValues: {
         ":kind": "QUIZ",
-        ":creator": email,
       },
     })
   );
