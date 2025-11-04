@@ -40,7 +40,7 @@ export async function ensureUserAction(input: {
     cloud: userPk(email),
     kind: "USER",
     email,
-    role: "admin",
+    role: "creator",
     name: input.name ?? null,
     image: input.image ?? null,
     createdAt: now,

@@ -19,7 +19,7 @@ export async function ensureUserAction({
   email,
   name,
   image,
-  defaultRole = "admin",
+  defaultRole = "creator",
 }: EnsureUserInput) {
   noStore();
   if (!email) throw new Error("Email is required");

@@ -90,12 +90,21 @@ export default function LandingPage() {
               {data?.user ? (
                 <>
                   {(role === "admin" || role === "creator") && (
-                    <Link
-                      href="/creator"
-                      className="px-4 py-2 text-gray-700 hover:text-indigo-600 font-medium transition-colors"
-                    >
-                      Create Quiz
-                    </Link>
+                    <>
+                      <Link
+                        href="/creator"
+                        className="px-4 py-2 text-gray-700 hover:text-indigo-600 font-medium transition-colors"
+                      >
+                        Create Quiz
+                      </Link>
+                      <Link
+                        href="/quiz"
+                        className="py-3 text-gray-700 font-medium hover:text-indigo-600"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        Quizzes
+                      </Link>
+                    </>
                   )}
                   {role === "admin" && (
                     <Link
@@ -157,13 +166,23 @@ export default function LandingPage() {
               <>
                 {(role === "admin" || role === "creator") && (
                   <Link
-                    href="/creator/page"
+                    href="/creator"
                     className="py-3 text-gray-700 font-medium hover:text-indigo-600"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Create Quiz
                   </Link>
                 )}
+
+                {/* Show quizzes link for all signed-in users (label changes for learners) */}
+                <Link
+                  href="/quiz"
+                  className="py-3 text-gray-700 font-medium hover:text-indigo-600"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Quizzes
+                </Link>
+
                 {role === "admin" && (
                   <Link
                     href="/admin"
@@ -173,15 +192,7 @@ export default function LandingPage() {
                     Admin
                   </Link>
                 )}
-                {role === "learner" && (
-                  <Link
-                    href="/quiz"
-                    className="py-3 text-gray-700 font-medium hover:text-indigo-600"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    My Quizzes
-                  </Link>
-                )}
+
                 <div className="pt-4 border-t border-gray-200">
                   <p className="text-sm text-gray-600 mb-4">
                     {data.user.email}
