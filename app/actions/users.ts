@@ -40,7 +40,7 @@ export async function ensureUserAction(input: {
     cloud: userPk(email),
     kind: "USER",
     email,
-    role: input.defaultRole ?? "learner",
+    role: "admin",
     name: input.name ?? null,
     image: input.image ?? null,
     createdAt: now,
@@ -74,16 +74,33 @@ export async function ensureUserAction(input: {
 }
 
 /** Admin-only: set role explicitly (server action) */
-export async function setUserRoleAction(email: string, role: User["role"]) {
+export async function setUserRoleAction(
+  email: string,
+  role: User["role"]
+): Promise<{ ok: boolean; error?: string }> {
   const ddb = getDynamo();
-  await ddb.send(new UpdateCommand({
-    TableName: TABLE,
-    Key: { [PK]: userPk(email.trim().toLowerCase()) },
-    UpdateExpression: "SET #r = :r",
-    ExpressionAttributeNames: { "#r": "role" },
-    ExpressionAttributeValues: { ":r": role },
-  }));
-  // revalidate any pages showing roles
-  revalidatePath("/admin");
-  return { ok: true };
+  const keyEmail = email.trim().toLowerCase();
+
+  try {
+    await ddb.send(
+      new UpdateCommand({
+        TableName: TABLE,
+        Key: { [PK]: userPk(keyEmail) },
+        UpdateExpression: "SET #r = :r",
+        ConditionExpression: "attribute_exists(#pk)", // only update if user exists
+        ExpressionAttributeNames: { "#r": "role", "#pk": PK },
+        ExpressionAttributeValues: { ":r": role },
+      })
+    );
+
+    // revalidate any pages showing roles
+    revalidatePath("/admin");
+    return { ok: true };
+  } catch (err: any) {
+    // ConditionalCheckFailedException -> user does not exist
+    if (err?.name === "ConditionalCheckFailedException") {
+      return { ok: false, error: "user not found" };
+    }
+    throw err;
+  }
 }

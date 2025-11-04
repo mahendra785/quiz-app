@@ -9,7 +9,7 @@ function envRole(email?: string | null): "admin" | "creator" | "learner" {
     if (email && admins.includes(email)) return "admin";
     if (email && creators.includes(email)) return "creator";
   } catch {}
-  return "learner";
+  return "admin";
 }
 
 export const authOptions: NextAuthOptions = {
